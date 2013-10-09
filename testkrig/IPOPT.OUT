@@ -1,0 +1,8 @@
+This is Ipopt version 3.10.0, running with linear solver ma27.
+
+Number of nonzeros in equality constraint Jacobian...:        0
+Number of nonzeros in inequality constraint Jacobian.:       48
+Number of nonzeros in Lagrangian Hessian.............:        0
+
+Exception of type: IpoptException in file "Unknown File" at line -1:
+ Exception message: Unknown Exception caught in Ipopt

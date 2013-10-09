@@ -1,4 +1,4 @@
-program problemPC
+program main
 
   use dimpce,only:probtype,id_proc
 
@@ -47,7 +47,7 @@ program problemPC
   integer IPOPENOUTPUTFILE
   !
   double precision F,Fs,sigmax(N),pi
-  integer i,kprob
+  integer i,kprob,surrogate
 
   double precision  infbound
   parameter        (infbound = 1.d+20)
@@ -84,7 +84,7 @@ program problemPC
   dat(1000+12)=0.005    ! in  max_u_disp=dat(12)
   dat(1000+13)=0.005    ! in  max_v_disp=dat(12)
   dat(1000+14)=1.0      ! Factor of safety
-  dat(1000+20)=77       ! filenum for PC
+  dat(1000+20)=6       ! filenum for PC
 
   !============
   !  DAT array
@@ -106,6 +106,7 @@ program problemPC
 
   probtype=1
   kprob=2
+  surrogate=2
 
   ! SD for area design variables
   sigmax(1)=0.05
@@ -129,7 +130,7 @@ program problemPC
   IDAT(3)=probtype
 
   ! Polynomial Chaos (1) or Kriging (2)
-  IDAT(4)=1 
+  IDAT(4)=surrogate
   
 
   ! Area design variables
@@ -255,8 +256,8 @@ program problemPC
 9990 continue
   write(*,*) 'Error setting an option'
   goto 9000
-
-end program problemPC
+  
+end program main
 !
 ! =============================================================================
 !
@@ -274,10 +275,11 @@ subroutine EV_F(N, X, NEW_X, F, IDAT, DAT, IERR)
   real*8 :: fmeandbleprimetmp(n,n),fvardbleprimetmp(n,n)
   double precision DAT(*)
   integer IDAT(*),kprob
-  integer IERR
+  integer IERR,surrogate
 
   kprob=IDAT(1)
   probtype=IDAT(3)
+  surrogate=IDAT(4)
 
   do i=1,N
      sigmax(i)=DAT(i)
@@ -285,14 +287,24 @@ subroutine EV_F(N, X, NEW_X, F, IDAT, DAT, IERR)
 
   !---- MEAN and VARIANCE OF worst OBJECTIVE FUNCTION
 
-!call  PCestimate(dim,xavgin,xstdin,fctin,fctindxin,DATIN,orderinitial,orderfinal,statin,probtypeIN,sampfac,fmeanout,fvarout,fmeanprimeout,fvarprimeout,fmeandbleprimeout,fvardbleprimeout)
+ if (surrogate.eq.1) then
 
-  call  PCestimate(N,x,sigmax,12,0,DAT(1001:1020),4,4,0,probtype,&
-       &fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
+     !call  PCestimate(dim,xavgin,xstdin,fctin,fctindxin,DATIN,orderinitial,orderfinal,statin,probtypeIN,sampfac,fmeanout,fvarout,fmeanprimeout,fvarprimeout,fmeandbleprimeout,fvardbleprimeout)
 
-!call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
+     call  PCestimate(N,x,sigmax,12,0,DAT(1001:1020),4,4,0,probtype,&
+          &fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
 
-!call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),60,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
+  else if (surrogate.eq.2) then
+
+     !call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
+
+     call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),60,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
+
+  else
+
+     stop'Wring choice of surrogate'
+
+  end if
 
   if (IDAT(2).eq.1) then ! Deterministic with PC
      fvartmp=0.0d0
@@ -328,28 +340,39 @@ subroutine EV_G(N, X, NEW_X, M, G, IDAT, DAT, IERR)
   double precision DAT(*),fmeanprimetmp(n),fvarprimetmp(n),dc(M,N)
   real*8 :: fmeandbleprimetmp(n,n),fvardbleprimetmp(n,n)
   integer IDAT(*),kprob
-  integer IERR, i, j,cnt
+  integer IERR, i, j,cnt,surrogate
 
   kprob=IDAT(1)
   probtype=IDAT(3)
+  surrogate=IDAT(4)
+
   do i=1,N
      sigmax(i)=DAT(i)
   end do
 
   do i=1,M
 
-     !---- MEAN OF INEQUALITY CONSTRAINT i
-     !call  PCestimate(dim,xavgin,xstdin,fctin,fctindxin,DATIN,orderinitial,orderfinal,statin,probtypeIN,sampfac,fmeanout,fvarout,fmeanprimeout,fvarprimeout,fmeandbleprimeout,fvardbleprimeout)
 
-     call  PCestimate(N,x,sigmax,12,i,DAT(1001:1020),4,4,0,probtype,&
-          &fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
+     if (surrogate.eq.1) then
+
+        !---- MEAN OF INEQUALITY CONSTRAINT i
+        !call  PCestimate(dim,xavgin,xstdin,fctin,fctindxin,DATIN,orderinitial,orderfinal,statin,probtypeIN,sampfac,fmeanout,fvarout,fmeanprimeout,fvarprimeout,fmeandbleprimeout,fvardbleprimeout)
+
+        call  PCestimate(N,x,sigmax,12,i,DAT(1001:1020),4,4,0,probtype,&
+             &fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
+
+     else if (surrogate.eq.2) then
+
+        !call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
+
+        call Krigingestimate(N,N,x,sigmax,12,i,DAT(1001:1020),60,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
 
 
+     else 
 
-!call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
+        stop'Wrong surrogate choice'
 
-!call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),60,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
-
+     end if
 
 
   if (IDAT(2).eq.1) then ! Deterministic with PC
@@ -391,27 +414,43 @@ subroutine EV_GRAD_F(N, X, NEW_X, GRAD, IDAT, DAT, IERR)
   double precision GRAD(N), X(N), sigmax(N), fmeantmp, fvartmp
   double precision DAT(*),fmeanprimetmp(n),fvarprimetmp(n)
   real*8 :: fmeandbleprimetmp(n,n),fvardbleprimetmp(n,n)
-  integer IDAT(*),kprob
+  integer IDAT(*),kprob,surrogate
   integer IERR
 
   kprob=IDAT(1)
   probtype= IDAT(3)
+  surrogate=IDAT(4)
+
 
   do i=1,N
      sigmax(i)=DAT(i)
   end do
 
   !---- MEAN OF INEQUALITY CONSTRAINT i
-  !call  PCestimate(dim,xavgin,xstdin,fctin,fctindxin,DATIN,orderinitial,orderfinal,statin,probtypeIN,sampfac,fmeanout,fvarout,fmeanprimeout,fvarprimeout,fmeandbleprimeout,fvardbleprimeout)
-  
-  call  PCestimate(N,x,sigmax,12,0,DAT(1001:1020),4,4,0,probtype,&
-       &fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
 
 
 
-!call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
+  if (surrogate.eq.1) then
 
-!call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),60,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
+     !---- MEAN OF INEQUALITY CONSTRAINT i
+     !call  PCestimate(dim,xavgin,xstdin,fctin,fctindxin,DATIN,orderinitial,orderfinal,statin,probtypeIN,sampfac,fmeanout,fvarout,fmeanprimeout,fvarprimeout,fmeandbleprimeout,fvardbleprimeout)
+
+     call  PCestimate(N,x,sigmax,12,0,DAT(1001:1020),4,4,0,probtype,&
+          &fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
+
+
+  else if (surrogate.eq.2) then
+
+     !call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
+
+     call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),60,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
+
+  else
+
+     stop'Wrong surrogate choice'
+
+  end if
+
 
 
   !---- GRADIENT OF OBJECTIVE FUNCTION
@@ -450,7 +489,7 @@ subroutine EV_JAC_G(TASK, N, X, NEW_X, M, NZ, ACON, AVAR, A,IDAT, DAT, IERR)
   double precision DAT(*),fmeanprimetmp(n),fvarprimetmp(n)
   real*8 :: fmeandbleprimetmp(n,n),fvardbleprimetmp(n,n)
   integer IDAT(*)
-  integer IERR, kprob
+  integer IERR, kprob,surrogate
   logical samex
 
   if( TASK.eq.0 ) then 
@@ -591,6 +630,8 @@ subroutine EV_JAC_G(TASK, N, X, NEW_X, M, NZ, ACON, AVAR, A,IDAT, DAT, IERR)
 
      kprob=IDAT(1)
      probtype=IDAT(3)
+     surrogate=IDAT(4)
+
      do i=1,N
         sigmax(i)=DAT(i)
      end do
@@ -601,29 +642,40 @@ subroutine EV_JAC_G(TASK, N, X, NEW_X, M, NZ, ACON, AVAR, A,IDAT, DAT, IERR)
      do i=1,M
 
      !---- MEAN OF INEQUALITY CONSTRAINT i
+
+
+  if (surrogate.eq.1) then
+
+     !---- MEAN OF INEQUALITY CONSTRAINT i
      !call  PCestimate(dim,xavgin,xstdin,fctin,fctindxin,DATIN,orderinitial,orderfinal,statin,probtypeIN,sampfac,fmeanout,fvarout,fmeanprimeout,fvarprimeout,fmeandbleprimeout,fvardbleprimeout)
 
      call  PCestimate(N,x,sigmax,12,i,DAT(1001:1020),4,4,0,probtype,&
           &fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
 
 
+  else if (surrogate.eq.2) then
 
-!call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
+     !call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
 
-!call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),60,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
+     call Krigingestimate(N,N,x,sigmax,12,i,DAT(1001:1020),60,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
+
+  else
+
+     stop'Wrong surrogate choice'
+
+  end if
 
         if (IDAT(2).eq.1) then ! Deterministic with PC
            fvartmp=0.0d0
            fvarprimetmp=0.0d0
         end if
 
-
-!        do j=1,N
-           cgrad(i,:)=fmeanprimetmp(:)+dble(kprob)*fvarprimetmp(:)
-!           if (fvartmp.ne.0.0) then
-!              cgrad(i,j)=cgrad(i,j)+dble(kprob)*fvarprimetmp(j)/(2.0*sqrt(fvartmp))
- !          endif
-!        end do
+        do j=1,N
+           cgrad(i,:)=fmeanprimetmp(j)
+           if (fvartmp.ne.0.0) then
+              cgrad(i,j)=cgrad(i,j)+dble(kprob)*fvarprimetmp(j)/(2.0*sqrt(fvartmp))
+           endif
+        end do
 
      end do
      
@@ -798,57 +850,6 @@ subroutine EV_HESS(TASK, N, X, NEW_X, OBJFACT, M, LAM, NEW_LAM,NNZH, IRNH, ICNH,
  
   else
 
-!!$     
-!!$     do ii=0,m
-!!$
-!!$        !      call PCestimate(dim,xavgin,xstdin,fctin,fctindxin,orderinitial,orderfinal,statin,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
-!!$        call  PCestimate(N,x,sigmax,11,ii,4,4,0,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
-!!$
-
-
-!!call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
-
-!!call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),60,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
-
-!!$        if (ii.eq.0) then
-!!$           
-!!$           cnt=0
-!!$           do i=1,N
-!!$              do j=1,N
-!!$                 if (i.le.j) then
-!!$                    cnt=cnt+1
-!!$                    objhess(cnt)=fmeandbleprimetmp(i,j)+kprob*fvardbleprimetmp(i,j)
-!!$                 end if
-!!$              end do
-!!$           end do
-!!$
-!!$
-!!$        else
-!!$           
-!!$           cnt=0
-!!$           do i=1,N
-!!$              do j=1,N
-!!$                 if (i.le.j) then
-!!$                    cnt=cnt+1
-!!$                    conhess(ii,cnt)=fmeandbleprimetmp(i,j)+kprob*fvardbleprimetmp(i,j)
-!!$                 end if
-!!$              end do
-!!$           end do
-!!$
-!!$        end if
-!!$
-!!$     end do
-!!$
-!!$     ! Assemble all into HESS
-!!$     
-!!$     HESS(:)=0.0
-!!$     do i=1,NNZH
-!!$        hesstmp=0.0
-!!$        do j=1,m
-!!$           hesstmp=hesstmp+lam(j)*conhess(j,i)
-!!$        end do
-!!$        hess(i)=hesstmp+objhess(i)
-!!$     end do
      
      IERR = 0
 
@@ -856,16 +857,6 @@ subroutine EV_HESS(TASK, N, X, NEW_X, OBJFACT, M, LAM, NEW_LAM,NNZH, IRNH, ICNH,
 
   return
 end subroutine EV_HESS
-
-
-
-
-
-
-
-
-
-
 
 !
 ! =============================================================================
@@ -884,9 +875,7 @@ subroutine ITER_CB(ALG_MODE, ITER_COUNT,OBJVAL, INF_PR, INF_DU,MU, DNORM, REGU_S
   double precision DAT(*)
   integer IDAT(*)
   integer ISTOP
-  !
-  !     You can put some output here
-  !
+
   if (id_proc.eq.0) then
 
      if (ITER_COUNT .eq.0) then
@@ -897,11 +886,6 @@ subroutine ITER_CB(ALG_MODE, ITER_COUNT,OBJVAL, INF_PR, INF_DU,MU, DNORM, REGU_S
      write(*,'(i5,5e15.7)') ITER_COUNT,OBJVAL,DNORM,INF_PR,INF_DU,MU
 
   end if
-  !
-  !     And set ISTOP to 1 if you want Ipopt to stop now.  Below is just a
-  !     simple example.
-  !
-  if (ITER_COUNT .gt. 1 .and. DNORM.le.1D-03) ISTOP = 1
 
   return
 end subroutine ITER_CB
