@@ -1,6 +1,5 @@
 program main
-
-  use dimkrig,only:id_proc,probtype,num_proc
+  use dimpce,only:id_proc,probtype,num_proc
 
 !  use dimpce,only:id_proc,probtype,num_proc
 
@@ -60,8 +59,15 @@ program main
   !
   external EV_F, EV_G, EV_GRAD_F, EV_JAC_G, EV_HESS, ITER_CB
 
-
   call MPI_START
+!!$  
+!!$  call MPI_Init(ierr)
+!!$  if (ierr /= MPI_SUCCESS) then
+!!$     stop 'MPI Initializatin error'
+!!$  endif
+!!$  call MPI_Comm_rank(MPI_COMM_WORLD, id_proc , ierr)
+!!$  call MPI_Comm_size(MPI_COMM_WORLD, num_proc, ierr)
+!!$
 
   pi=4.0*atan(1.0) ! constant for later use (visible globally)
 
@@ -120,9 +126,7 @@ program main
   sigmax(4)=1.0*pi/180.0
   sigmax(5)=1.0*pi/180.0
   sigmax(6)=1.0*pi/180.0
-  print*,id_proc,num_proc
 
-  stop
   do i=i,n
      dat(i)=sigmax(i)
   end do
@@ -135,7 +139,6 @@ program main
 
   ! Polynomial Chaos (1) or Kriging (2)
   IDAT(4)=surrogate
-  
 
   ! Area design variables
 
@@ -169,6 +172,20 @@ program main
      G_L(i)=-infbound
      G_U(i)=0.d0
   end do
+
+  call MPI_BARRIER(MPI_COMM_WORLD,IERR)
+
+  if (id_proc.eq.0) then
+     print*,''
+     print*,'***********************************************'
+     if (surrogate.eq.1) then
+        print*, '   Robust optimization using POLYNOMIAL CHAOS'
+     else if (surrogate.eq.2) then
+        print*, '          Robust optimization using KRIGING'
+     end if
+     print*,'***********************************************'
+     print*,''
+  end if
 
   !
   !     First create a handle for the Ipopt problem (and read the options
@@ -271,9 +288,9 @@ end program main
 !
 
 subroutine EV_F(N, X, NEW_X, F, IDAT, DAT, IERR)
-  use dimkrig,only:id_proc,probtype
-
+  use dimpce,only:id_proc,probtype
   implicit none
+
   integer N,I,NEW_X
   double precision F, X(N),sigmax(N),fmeantmp,fvartmp,fmeanprimetmp(n),fvarprimetmp(n)
   real*8 :: fmeandbleprimetmp(n,n),fvardbleprimetmp(n,n)
@@ -301,7 +318,7 @@ subroutine EV_F(N, X, NEW_X, F, IDAT, DAT, IERR)
 
      !call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
 
-     call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),100,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
+!     call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),100,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
 
   else
 
@@ -335,9 +352,9 @@ end subroutine EV_F
 ! =============================================================================
 !
 subroutine EV_G(N, X, NEW_X, M, G, IDAT, DAT, IERR)
-  use dimkrig,only:id_proc,probtype
-
+  use dimpce,only:id_proc,probtype,num_proc
   implicit none
+
   integer N, M,NEW_X
   double precision G(M), X(N), sigmax(N), cmean(M), cstd(M), fmeantmp, fvartmp
   double precision DAT(*),fmeanprimetmp(n),fvarprimetmp(n),dc(M,N)
@@ -355,29 +372,23 @@ subroutine EV_G(N, X, NEW_X, M, G, IDAT, DAT, IERR)
 
   do i=1,M
 
-
      if (surrogate.eq.1) then
 
         !---- MEAN OF INEQUALITY CONSTRAINT i
         !call  PCestimate(dim,xavgin,xstdin,fctin,fctindxin,DATIN,orderinitial,orderfinal,statin,probtypeIN,sampfac,fmeanout,fvarout,fmeanprimeout,fvarprimeout,fmeandbleprimeout,fvardbleprimeout)
+
+!        write(*,'(x,a,i3,a,i3,a)')'>> Hello, from processor [',id_proc+1,' ] of [',num_proc,' ]'
 
         call  PCestimate(N,x,sigmax,12,i,DAT(1001:1020),4,4,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
 
      else if (surrogate.eq.2) then
 
         !call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
-!        if (id_proc.eq.0) then
-!           print*,x
-!           print*,sigmax
-!        end if
 
-        call Krigingestimate(N,N,x,sigmax,12,i,DAT(1001:1020),100,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
-
+!        call Krigingestimate(N,N,x,sigmax,12,i,DAT(1001:1020),100,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
 
      else 
-
         stop'Wrong surrogate choice'
-
      end if
 
 
@@ -413,7 +424,7 @@ end subroutine EV_G
 ! =============================================================================
 !
 subroutine EV_GRAD_F(N, X, NEW_X, GRAD, IDAT, DAT, IERR)
-  use dimkrig,only:id_proc,probtype
+  use dimpce,only:id_proc,probtype
 
   implicit none
   integer N,i,NEW_X
@@ -448,7 +459,7 @@ subroutine EV_GRAD_F(N, X, NEW_X, GRAD, IDAT, DAT, IERR)
 
      !call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
 
-     call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),100,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
+!     call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),100,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
 
   else
 
@@ -485,7 +496,7 @@ end subroutine EV_GRAD_F
 ! =============================================================================
 !
 subroutine EV_JAC_G(TASK, N, X, NEW_X, M, NZ, ACON, AVAR, A,IDAT, DAT, IERR)
-  use dimkrig,only:id_proc,probtype
+  use dimpce,only:id_proc,probtype
 
   implicit none
   integer TASK, N, M, NZ,NEW_X
@@ -661,7 +672,7 @@ subroutine EV_JAC_G(TASK, N, X, NEW_X, M, NZ, ACON, AVAR, A,IDAT, DAT, IERR)
 
      !call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
 
-     call Krigingestimate(N,N,x,sigmax,12,i,DAT(1001:1020),100,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
+!     call Krigingestimate(N,N,x,sigmax,12,i,DAT(1001:1020),100,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
 
   else
 
@@ -870,7 +881,7 @@ end subroutine EV_HESS
 ! =============================================================================
 !
 subroutine ITER_CB(ALG_MODE, ITER_COUNT,OBJVAL, INF_PR, INF_DU,MU, DNORM, REGU_SIZE, ALPHA_DU, ALPHA_PR, LS_TRIAL, IDAT,DAT, ISTOP)
-  use dimkrig,only:id_proc,probtype
+  use dimpce,only:id_proc,probtype
 
   implicit none
   integer ALG_MODE, ITER_COUNT, LS_TRIAL

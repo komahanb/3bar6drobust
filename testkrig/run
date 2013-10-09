@@ -1,3 +1,4 @@
+cd ..
 make
-#rm Function*
-mpiexec -np 8 ./MixedOUU  |tee screen
+cd -
+mpiexec -np 8 ../MixedOUU |tee screen 
