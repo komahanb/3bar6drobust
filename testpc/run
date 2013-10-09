@@ -1,4 +1,8 @@
 cd ..
+cp main.f90 temp.f90
+cp main.f90pc main.f90
+cp Makefile Mak.tmp
+cp Makefilepc Makefile
 make
 cd -
 mpiexec -np 8 ../MixedOUU |tee screen 

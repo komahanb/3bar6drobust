@@ -1,15 +1,13 @@
- >> Number of Processors =   8
- 
- >> Processor            1 of           8 ...[OK]
- >> Processor            2 of           8 ...[OK]
- >> Processor            3 of           8 ...[OK]
- >> Processor            4 of           8 ...[OK]
- >> Processor            5 of           8 ...[OK]
- >> Processor            7 of           8 ...[OK]
- >> Processor            6 of           8 ...[OK]
- >> Processor            8 of           8 ...[OK]
  
  ***********************************************
     Robust optimization using POLYNOMIAL CHAOS
  ***********************************************
  
+ 
+    >>Normalized Constraint Values:
+   0.2067E+01
+   0.8449E+00
+  -0.2040E+01
+  -0.3602E+01
+  -0.2473E+01
+   0.3113E+00

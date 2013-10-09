@@ -46,7 +46,7 @@ all: $(EXE)
 
 .SUFFIXES: .f90 .o .F
 
-$(EXE): $(OBJS) krigingestimate.a Eulersolve.a libmir.a tapenade.a
+$(EXE): $(OBJS) pcestimate.a Eulersolve.a libmir.a tapenade.a
 	$(F90) $(F77LINKFLAGS) $(FFLAGS) -o $@ $^ $(LIBS) -Wl,-rpath=/usr/local/lib
 
 clean:
