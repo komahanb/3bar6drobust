@@ -1,6 +1,8 @@
 program main
 
-  use dimpce,only:probtype,id_proc
+  use dimkrig,only:id_proc,probtype,num_proc
+
+!  use dimpce,only:id_proc,probtype,num_proc
 
   implicit none
   !
@@ -73,18 +75,18 @@ program main
   ! Max constraint values
   
   !Tensile
-  dat(1000+6)=2000.0    ! psi tensile_sigma1_max=dat(6)      
-  dat(1000+7)=2000.0    ! psi tensile_sigma2_max=dat(7)
-  dat(1000+8)=2000.0    ! psi tensile_sigma3_max=dat(8)
+  dat(1000+6)=5000.0    ! psi tensile_sigma1_max=dat(6)      
+  dat(1000+7)=20000.0    ! psi tensile_sigma2_max=dat(7)
+  dat(1000+8)=5000.0    ! psi tensile_sigma3_max=dat(8)
   !Compressive
-  dat(1000+9)=2000.0    ! psi comp_sigma1_max=dat(9)
-  dat(1000+10)=2000.0   ! psi comp_sigma2_max=dat(10)
-  dat(1000+11)=2000.0   ! psi comp_sigma3_max=dat(11)
+  dat(1000+9)=5000.0    ! psi comp_sigma1_max=dat(9)
+  dat(1000+10)=20000.0   ! psi comp_sigma2_max=dat(10)
+  dat(1000+11)=5000.0   ! psi comp_sigma3_max=dat(11)
   !Displacement
   dat(1000+12)=0.005    ! in  max_u_disp=dat(12)
   dat(1000+13)=0.005    ! in  max_v_disp=dat(12)
   dat(1000+14)=1.0      ! Factor of safety
-  dat(1000+20)=6       ! filenum for PC
+  dat(1000+20)=77       ! filenum for PC
 
   !============
   !  DAT array
@@ -106,7 +108,7 @@ program main
 
   probtype=1
   kprob=2
-  surrogate=2
+  surrogate=1
 
   ! SD for area design variables
   sigmax(1)=0.05
@@ -118,7 +120,9 @@ program main
   sigmax(4)=1.0*pi/180.0
   sigmax(5)=1.0*pi/180.0
   sigmax(6)=1.0*pi/180.0
+  print*,id_proc,num_proc
 
+  stop
   do i=i,n
      dat(i)=sigmax(i)
   end do
@@ -267,7 +271,7 @@ end program main
 !
 
 subroutine EV_F(N, X, NEW_X, F, IDAT, DAT, IERR)
-  use dimpce,only:probtype,id_proc
+  use dimkrig,only:id_proc,probtype
 
   implicit none
   integer N,I,NEW_X
@@ -291,14 +295,13 @@ subroutine EV_F(N, X, NEW_X, F, IDAT, DAT, IERR)
 
      !call  PCestimate(dim,xavgin,xstdin,fctin,fctindxin,DATIN,orderinitial,orderfinal,statin,probtypeIN,sampfac,fmeanout,fvarout,fmeanprimeout,fvarprimeout,fmeandbleprimeout,fvardbleprimeout)
 
-     call  PCestimate(N,x,sigmax,12,0,DAT(1001:1020),4,4,0,probtype,&
-          &fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
+     call  PCestimate(N,x,sigmax,12,0,DAT(1001:1020),4,4,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
 
   else if (surrogate.eq.2) then
 
      !call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
 
-     call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),60,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
+     call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),100,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
 
   else
 
@@ -332,7 +335,7 @@ end subroutine EV_F
 ! =============================================================================
 !
 subroutine EV_G(N, X, NEW_X, M, G, IDAT, DAT, IERR)
-  use dimpce,only:probtype,id_proc
+  use dimkrig,only:id_proc,probtype
 
   implicit none
   integer N, M,NEW_X
@@ -358,14 +361,17 @@ subroutine EV_G(N, X, NEW_X, M, G, IDAT, DAT, IERR)
         !---- MEAN OF INEQUALITY CONSTRAINT i
         !call  PCestimate(dim,xavgin,xstdin,fctin,fctindxin,DATIN,orderinitial,orderfinal,statin,probtypeIN,sampfac,fmeanout,fvarout,fmeanprimeout,fvarprimeout,fmeandbleprimeout,fvardbleprimeout)
 
-        call  PCestimate(N,x,sigmax,12,i,DAT(1001:1020),4,4,0,probtype,&
-             &fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
+        call  PCestimate(N,x,sigmax,12,i,DAT(1001:1020),4,4,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
 
      else if (surrogate.eq.2) then
 
         !call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
+!        if (id_proc.eq.0) then
+!           print*,x
+!           print*,sigmax
+!        end if
 
-        call Krigingestimate(N,N,x,sigmax,12,i,DAT(1001:1020),60,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
+        call Krigingestimate(N,N,x,sigmax,12,i,DAT(1001:1020),100,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
 
 
      else 
@@ -407,7 +413,7 @@ end subroutine EV_G
 ! =============================================================================
 !
 subroutine EV_GRAD_F(N, X, NEW_X, GRAD, IDAT, DAT, IERR)
-  use dimpce,only:probtype,id_proc
+  use dimkrig,only:id_proc,probtype
 
   implicit none
   integer N,i,NEW_X
@@ -435,15 +441,14 @@ subroutine EV_GRAD_F(N, X, NEW_X, GRAD, IDAT, DAT, IERR)
      !---- MEAN OF INEQUALITY CONSTRAINT i
      !call  PCestimate(dim,xavgin,xstdin,fctin,fctindxin,DATIN,orderinitial,orderfinal,statin,probtypeIN,sampfac,fmeanout,fvarout,fmeanprimeout,fvarprimeout,fmeandbleprimeout,fvardbleprimeout)
 
-     call  PCestimate(N,x,sigmax,12,0,DAT(1001:1020),4,4,0,probtype,&
-          &fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
+     call  PCestimate(N,x,sigmax,12,0,DAT(1001:1020),4,4,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
 
 
   else if (surrogate.eq.2) then
 
      !call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
 
-     call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),60,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
+     call Krigingestimate(N,N,x,sigmax,12,0,DAT(1001:1020),100,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
 
   else
 
@@ -480,7 +485,7 @@ end subroutine EV_GRAD_F
 ! =============================================================================
 !
 subroutine EV_JAC_G(TASK, N, X, NEW_X, M, NZ, ACON, AVAR, A,IDAT, DAT, IERR)
-  use dimpce,only:probtype,id_proc
+  use dimkrig,only:id_proc,probtype
 
   implicit none
   integer TASK, N, M, NZ,NEW_X
@@ -649,15 +654,14 @@ subroutine EV_JAC_G(TASK, N, X, NEW_X, M, NZ, ACON, AVAR, A,IDAT, DAT, IERR)
      !---- MEAN OF INEQUALITY CONSTRAINT i
      !call  PCestimate(dim,xavgin,xstdin,fctin,fctindxin,DATIN,orderinitial,orderfinal,statin,probtypeIN,sampfac,fmeanout,fvarout,fmeanprimeout,fvarprimeout,fmeandbleprimeout,fvardbleprimeout)
 
-     call  PCestimate(N,x,sigmax,12,i,DAT(1001:1020),4,4,0,probtype,&
-          &fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
+     call  PCestimate(N,x,sigmax,12,i,DAT(1001:1020),4,4,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp,fmeandbleprimetmp,fvardbleprimetmp)
 
 
   else if (surrogate.eq.2) then
 
      !call Krigingestimate(ndimin,ndimint,xavgin,xstdin,fctin,fctindxin,DATIN,nptsin,statin,probtypeIN,fmeanout,fvarout,fmeanprimeout,fvarprimeout)
 
-     call Krigingestimate(N,N,x,sigmax,12,i,DAT(1001:1020),60,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
+     call Krigingestimate(N,N,x,sigmax,12,i,DAT(1001:1020),100,0,probtype,fmeantmp,fvartmp,fmeanprimetmp,fvarprimetmp)
 
   else
 
@@ -866,7 +870,7 @@ end subroutine EV_HESS
 ! =============================================================================
 !
 subroutine ITER_CB(ALG_MODE, ITER_COUNT,OBJVAL, INF_PR, INF_DU,MU, DNORM, REGU_SIZE, ALPHA_DU, ALPHA_PR, LS_TRIAL, IDAT,DAT, ISTOP)
-  use dimpce,only:probtype,id_proc
+  use dimkrig,only:id_proc,probtype
 
   implicit none
   integer ALG_MODE, ITER_COUNT, LS_TRIAL

@@ -1,14 +1,18 @@
- 
-    >>Normalized Constraint Values:
-     0.67E+01
-     0.36E+01
-    -0.36E+01
-    -0.75E+01
-    -0.47E+01
-     0.23E+01
-     0.85E+00
-     0.33E+01
- 
- 
- iter    objective      ||grad||        inf_pr          inf_du         lg(mu)
-    0  0.3844722E+01  0.0000000E+00  0.6680222E+01  0.1260356E+01  0.1000000E+01
+           0           0
+           0           0
+           0           0
+           0           0
+           0           0
+           0           0
+           0           0
+           0           0
+rank 6 in job 173  cfd3_44003   caused collective abort of all ranks
+  exit status of rank 6: return code 0 
+rank 5 in job 173  cfd3_44003   caused collective abort of all ranks
+  exit status of rank 5: return code 0 
+rank 2 in job 173  cfd3_44003   caused collective abort of all ranks
+  exit status of rank 2: return code 0 
+rank 1 in job 173  cfd3_44003   caused collective abort of all ranks
+  exit status of rank 1: return code 0 
+rank 0 in job 173  cfd3_44003   caused collective abort of all ranks
+  exit status of rank 0: return code 0 

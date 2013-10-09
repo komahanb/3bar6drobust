@@ -15,4 +15,4 @@ Total number of inequality constraints...............:        8
         inequality constraints with only upper bounds:        8
 
 iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
-   0  3.8447216e+00 6.67e+00 1.26e+00   0.0 0.00e+00    -  0.00e+00 0.00e+00   0
+   0  3.8436443e+00 3.35e+00 1.50e+00   0.0 0.00e+00    -  0.00e+00 0.00e+00   0
